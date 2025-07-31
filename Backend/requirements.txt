@@ -1,0 +1,13 @@
+asgiref==3.8.1
+backports.zoneinfo==0.2.1
+Django==4.2.23
+django-cors-headers==4.4.0
+django-filter==24.3
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+psycopg2-binary==2.9.10
+PyJWT==2.9.0
+python-decouple==3.8
+pytz==2025.2
+sqlparse==0.5.3
+typing_extensions==4.13.2
