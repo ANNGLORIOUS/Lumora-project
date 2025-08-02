@@ -27,14 +27,16 @@ class UserProfile(models.Model):
         ]
 
     def __str__(self):
-        return f"profile for {self.user.username}"
+        # If the underlying User lacks username, fallback to email for safety
+        username = getattr(self.user, "username", None) or getattr(self.user, "email", "")
+        return f"profile for {username}"
 
 
 # auto-create profile when a user is created
 @receiver(post_save, sender=User)
 def ensure_user_profile(sender, instance, created, **kwargs):
     if created:
-        UserProfile.objects.create(user=instance)
+        UserProfile.objects.get_or_create(user=instance)
 
 
 # Tenant model (separate workspace/org)
