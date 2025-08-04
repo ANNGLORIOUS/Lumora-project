@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.validators import RegexValidator
+from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()  # will be the default "auth.User" unless you override AUTH_USER_MODEL
 
@@ -41,56 +43,77 @@ def ensure_user_profile(sender, instance, created, **kwargs):
 
 # Tenant model (separate workspace/org)
 class Tenant(models.Model):
-    name = models.CharField(max_length=100, help_text="Name of the organization/workspace")
-    subdomain = models.CharField(max_length=50, unique=True, help_text="Unique subdomain for tenant")
-    owner = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="owned_tenants",
-        help_text="User who owns this tenant",
+
+    PLAN_CHOICES = [
+        ('free', _('Free')),
+        ('basic', _('Basic')),
+        ('premium', _('Premium')),
+        ('enterprise', _('Enterprise')),
+    ]
+    
+    name = models.CharField(_('name'), max_length=100)
+    subdomain = models.CharField(
+        _('subdomain'),
+        max_length=50,
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-Z0-9-]+$',
+                message=_('Subdomain can only contain letters, numbers, and hyphens.')
+            )
+        ]
     )
-    is_active = models.BooleanField(default=True, help_text="Whether this tenant is active")
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_tenants'
+    )
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='TenantMembership',
+        related_name='tenants'
+    )
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='free')
+    is_active = models.BooleanField(_('active'), default=True)
+    settings = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "tenants_tenant"
-        verbose_name = "Tenant"
-        verbose_name_plural = "Tenants"
-        indexes = [
-            models.Index(fields=["subdomain"]),
-            models.Index(fields=["is_active"]),
-        ]
+        db_table = 'tenants_tenant'
+        verbose_name = _('Tenant')
+        verbose_name_plural = _('Tenants')
+        ordering = ['name']
 
     def __str__(self):
-        return f"{self.name} ({self.subdomain})"
+        return self.name
+
+    @property
+    def member_count(self):
+        return self.members.count()
 
 
-# Through model for user-tenancy relationships
 class TenantMembership(models.Model):
+    """Through model for tenant membership"""
+    
     ROLE_CHOICES = [
-        ("owner", "Owner"),
-        ("admin", "Administrator"),
-        ("member", "Member"),
+        ('owner', _('Owner')),
+        ('admin', _('Admin')),
+        ('member', _('Member')),
+        ('viewer', _('Viewer')),
     ]
-
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, help_text="User who is a member of the tenant"
-    )
-    tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, help_text="Tenant the user belongs to"
-    )
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="member", help_text="User's role in this tenant")
-    joined_at = models.DateTimeField(auto_now_add=True, help_text="When user joined this tenant")
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    is_active = models.BooleanField(default=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "tenants_membership"
-        verbose_name = "Tenant Membership"
-        verbose_name_plural = "Tenant Memberships"
-        unique_together = ["user", "tenant"]
-        indexes = [
-            models.Index(fields=["user", "tenant"]),
-        ]
+        db_table = 'tenants_membership'
+        unique_together = ['user', 'tenant']
+        verbose_name = _('Tenant Membership')
+        verbose_name_plural = _('Tenant Memberships')
 
     def __str__(self):
-        return f"{self.user.username} - {self.tenant.name} ({self.role})"
+        return f"{self.user.email} - {self.tenant.name} ({self.role})"
