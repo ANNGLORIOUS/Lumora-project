@@ -1,1 +1,19 @@
+/*
+  The following directives require Tailwind CSS and PostCSS setup.
+  Make sure your project is configured to use Tailwind CSS.
+*/
+
+
 @import "tailwindcss";
+
+body {
+  background-color: #FFF7E1; 
+  color: #7B3F00;            
+  font-family: 'YourFontFamily', sans-serif; 
+}
+.card {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06);
+  padding: 1rem;
+}
