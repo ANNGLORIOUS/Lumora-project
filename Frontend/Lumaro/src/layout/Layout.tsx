@@ -7,17 +7,16 @@ type LayoutProps = {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="flex h-screen bg-cream">
-      {/* Sidebar fixed left */}
-      <Sidebar />
+    <div className="h-screen bg-[#FAF3E0]">
+      {/* Navbar fixed at top */}
+      <Navbar />
 
-      {/* Main content area */}
-      <div className="flex flex-col flex-1 ml-64">
-        {/* Navbar stays at top */}
-        <Navbar />
+      <div className="flex">
+        {/* Sidebar fixed on left, below navbar */}
+        <Sidebar />
 
-        {/* Scrollable page content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        {/* Main content wrapper */}
+        <main className="flex-1 pt-16 pl-64 p-6 overflow-y-auto text-[#2B1B17]">
           {children}
         </main>
       </div>
